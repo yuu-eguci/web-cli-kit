@@ -11,6 +11,9 @@ exclude = [
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+# 日本語ツールなので、全角の「！」「（）」などを文字列/コメントで普通に使いたい。
+# RUF001/002/003 は「半角と紛らわしい全角文字」を咎めるルールなので、まとめて無効化します。
+ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.format]
 quote-style = "double"
