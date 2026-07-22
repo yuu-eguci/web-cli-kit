@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # NOTE: 秘密情報はコマンドライン引数で渡そうぜっていう思想なので、 env_file は使わない。
+    #       (.env は web UI のフォーム初期値専用。 cli 本体は .env を読みません。)
+    environment:
+      # .pyc 作らない。
+      PYTHONDONTWRITEBYTECODE: "1"
+      # stdout/stderr バッファしない。 (SSE でログを一行ずつ流すために超重要。)
+      PYTHONUNBUFFERED: "1"
+      # 仮想環境をプロジェクト直下 (/app/.venv) に作ります。
+      PIPENV_VENV_IN_PROJECT: "1"
+    working_dir: /app
+    volumes:
+      - ./:/app
+      # こっち↑は bind mount. (いつも同期。)
+      # こっち↓は anonymous volume. コンテナの中の、このボリュームだけは、同期しないよって設定。
+      # NOTE: Dockerfile で予め pipenv sync する作りにしてる。そのあとマウントで、上書きしちゃわないようにしています。
+      #       この方式だと、コンテナの中の venv も動くし、ホスト側で pipenv sync しても、コンテナ内とは
+      #       同期されないから、別々の環境で cli.py を動かすことだってできる。
+      - /app/.venv
+    # コンテナを起動したままにする……のは今回は (ジョブ実行型なので) 不要。
+    # tty: true
+    # stdin_open: true
+
+  # Web UI (web.py) 用のサービスです。
+  # NOTE: run はデフォルトで ports を公開しないので、 --service-ports が必要。
+  #       docker compose run --rm --service-ports web
+  #       ホスト側の 8000 が埋まってたら docker compose run --rm -p 8080:8000 web とかで回避する。
+  web:
+    # 基本は app と同じ。
+    extends:
+      service: app
+    # ただ、起動した瞬間にこれ↓を実行する。
+    command: pipenv run python web.py
+    # uvicorn が 8000 (右) で待っているので、そことホストの 8000 (左) をつなぐ。
+    ports:
+      - "8000:8000"
