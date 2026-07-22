@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>web-cli-kit web UI</title>
+  <style>
+    :root {
+      /* ブラウザのライト/ダーク設定に合わせて、文字色やフォーム部品の色を自動で切り替えます。 */
+      color-scheme: light dark;
+    }
+    body {
+      font-family: sans-serif;
+      max-width: 640px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    form {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 0.75rem 1rem;
+      align-items: center;
+    }
+    label {
+      text-align: right;
+    }
+    input, select {
+      padding: 0.4rem;
+    }
+    .actions {
+      grid-column: 2;
+    }
+    button {
+      padding: 0.5rem 1.5rem;
+    }
+    #log {
+      margin-top: 1.5rem;
+      padding: 0.75rem;
+      border: 1px solid #8888;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      max-height: 20rem;
+      overflow-y: auto;
+    }
+    #log:empty {
+      display: none;
+    }
+    #finish-button {
+      margin-top: 1.5rem;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h1>web-cli-kit web UI</h1>
+  <form id="run-form">
+    <label for="message">message</label>
+    <input id="message" name="message" type="text" required>
+
+    <label for="seconds">seconds</label>
+    <input id="seconds" name="seconds" type="number" min="0" value="3">
+
+    <label for="dry-run">dry run</label>
+    <input id="dry-run" name="dry_run" type="checkbox">
+
+    <div class="actions">
+      <button type="submit">実行</button>
+    </div>
+  </form>
+
+  <pre id="log"></pre>
+
+  <button id="finish-button" type="button" hidden>終わったよ！サーバー止めて閉じる</button>
+
+  <script>
+    // フォームの初期値を取得して埋めます。 (.env の WEB_DEFAULT_* が入ってきます。)
+    async function applyDefaults() {
+      const response = await fetch("/api/defaults");
+      const defaults = await response.json();
+      if (defaults.message) document.getElementById("message").value = defaults.message;
+      if (defaults.seconds) document.getElementById("seconds").value = defaults.seconds;
+    }
+    applyDefaults();
+
+    const form = document.getElementById("run-form");
+    const runButton = form.querySelector("button[type=submit]");
+    const logArea = document.getElementById("log");
+    const finishButton = document.getElementById("finish-button");
+
+    // 完了ボタン。押すとサーバーを止めて、お別れ画面に切り替えます。
+    finishButton.addEventListener("click", async () => {
+      // サーバーが返事の直後に終了するので、万一 fetch が失敗しても気にしません。
+      await fetch("/api/shutdown", { method: "POST" }).catch(() => {});
+      document.body.innerHTML = `
+        <h1>じゃあ良い一日を！👋</h1>
+        <p>サーバーは止めといたよ。このタブはもう閉じちゃって OK。</p>
+      `;
+    });
+
+    function appendLog(text) {
+      logArea.textContent += text + "\n";
+      logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    function finishRun() {
+      runButton.disabled = false;
+    }
+
+    // dry run のときは UI テストが目的なので、必須チェックをスキップします。
+    const dryRunCheckbox = document.getElementById("dry-run");
+    dryRunCheckbox.addEventListener("change", () => {
+      form.noValidate = dryRunCheckbox.checked;
+    });
+
+    // SSE のイベントを 1 件受け取るたびに、ログへ 1 行足します。
+    function handleEvent(event, source) {
+      if (event.type === "step_start") {
+        appendLog(`▶ ${event.script} を実行するよ`);
+      } else if (event.type === "log") {
+        appendLog(`    ${event.line}`);
+      } else if (event.type === "step_end") {
+        appendLog(`✓ ${event.script} が終わったよ`);
+      } else if (event.type === "done") {
+        appendLog("🎉 全部終わったよ！");
+        source.close();
+        finishRun();
+        finishButton.hidden = false;
+      } else if (event.type === "error") {
+        appendLog(`💥 エラー: ${event.message}`);
+        source.close();
+        finishRun();
+      }
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      // フォームの値を JSON に詰め替えます。空文字は「指定なし」なので null にします。
+      const payload = {};
+      for (const [key, value] of new FormData(form).entries()) {
+        payload[key] = value === "" ? null : value;
+      }
+      payload.dry_run = dryRunCheckbox.checked;
+
+      runButton.disabled = true;
+      logArea.textContent = "";
+      finishButton.hidden = true;
+
+      const response = await fetch("/api/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        appendLog(`💥 開始できなかった (${response.status}): ${JSON.stringify(body.detail ?? body)}`);
+        finishRun();
+        return;
+      }
+
+      const source = new EventSource("/api/events");
+      source.onmessage = (message) => handleEvent(JSON.parse(message.data), source);
+      source.onerror = () => {
+        appendLog("💥 接続が切れちゃった……");
+        source.close();
+        finishRun();
+      };
+    });
+  </script>
+</body>
+</html>
