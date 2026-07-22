@@ -18,3 +18,55 @@ web-cli-kit
     - cli 単体でも起動できる (そりゃそうだ)
     - ruff 導入済み
     - README の "コミット前確認" らへんに dev への気遣いが見える
+
+## ファイル構成
+
+- cli.py
+    - キットの主役。引数を受け取って数秒スリープするだけのサンプル。ここを書き換えて自分のツールにする。
+- web.py
+    - cli.py をブラウザから呼ぶための FastAPI サーバ。フォーム送信を受けて cli を subprocess 実行し、出力を SSE で画面へ流す。
+- index.html
+    - web.py が返す 1 枚もののフロント。フォームと、実行ログの表示エリアと、「終わったよ閉じていいよ」ボタン。
+- そのほか
+    - Dockerfile / compose.yaml (Docker ジョブ実行型)、 Pipfile (依存)、 pyproject.toml (ruff)、 .env.example (web UI のフォーム初期値)。
+
+## How to start
+
+```bash
+# 最初のセットアップ。
+# up -d --build じゃなくて build だけでいいのは、常駐サービスではなく単発ジョブ実行型だから。
+# (最初は Pipfile.lock が無いので、下の 3 手で lock を作ってから使い始めます。 lock コミット済みならこの 3 手は build だけで OK。)
+docker compose build
+docker compose run --rm app pipenv lock
+docker compose build
+
+# Ruff を動かしてみる
+docker compose run --rm app pipenv run ruff check .
+docker compose run --rm app pipenv run ruff check --fix .
+
+# 自慢の web UI はこちら。
+(sleep 2 && open http://localhost:8000) & docker compose run --rm --service-ports web
+# もしポートが埋まってたら↓
+# (sleep 2 && open http://localhost:8000) & docker compose run --rm -p 8080:8000 --service-ports web
+
+# cli 単体でも動きます (そりゃそうだ)
+docker compose run --rm app pipenv run python cli.py --help
+docker compose run --rm app pipenv run python cli.py --message "やっほー相棒" --seconds 3
+```
+
+## fork して自分のツールにする
+
+やりたい cli があるなら、だいたいこの 3 ファイルを触ればいい。
+
+- cli.py の build_parser に、自分のツールに必要な引数を足す (本体の処理も書く)
+- web.py の RunRequest と _build_command に、同じ引数を足す (バリデーションもここ)
+- index.html のフォームに、同じ入力欄を足す
+- cli を 001 → 002 → 003 のように複数本つなげたくなったら、 web.py の _run_real でループを回して _run_script を複数回呼ぶ (元ネタの discord-messages がその作り)
+
+秘密情報 (token など) は .env ではなくコマンドライン引数で渡す思想です。 .env は web UI のフォーム初期値専用。
+
+## コミット前確認
+
+```bash
+docker compose run --rm app pipenv run ruff check .
+```
