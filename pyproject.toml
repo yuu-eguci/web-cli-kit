@@ -1,5 +1,5 @@
 [tool.ruff]
-target-version = "py312"
+target-version = "py314"
 line-length = 120
 exclude = [
   ".git",
@@ -21,9 +21,6 @@ indent-style = "space"
 line-ending = "lf"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
-
-[tool.mypy]
-python_version = "3.14"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

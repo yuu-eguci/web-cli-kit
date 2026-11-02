@@ -64,7 +64,7 @@ class RunRequest(BaseModel):
     dry_run: bool = False
 
     @model_validator(mode="after")
-    def _require_message_unless_dry_run(self) -> "RunRequest":
+    def _require_message_unless_dry_run(self) -> RunRequest:
         """
         mode="before" 各フィールドに型を適用する前。 dict が渡ってくる。
         mode="after" self の中に型付きの値が入ってくる。

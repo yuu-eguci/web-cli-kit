@@ -37,19 +37,20 @@ web-cli-kit
 ```bash
 # 最初のセットアップ。
 # up -d --build じゃなくて build だけでいいのは、常駐サービスではなく単発ジョブ実行型だから。
-# (最初は Pipfile.lock が無いので、下の 3 手で lock を作ってから使い始めます。 lock コミット済みならこの 3 手は build だけで OK。)
 docker compose build
-docker compose run --rm app pipenv lock
+
+# 依存を足したら、 lock を更新して build し直す。 (venv はイメージの中にあるので。)
+docker compose run --rm app pipenv install パッケージ名
 docker compose build
 
 # Ruff を動かしてみる
 docker compose run --rm app pipenv run ruff check .
 docker compose run --rm app pipenv run ruff check --fix .
 
-# 自慢の web UI はこちら。
+# 自慢の web UI はこちら。 (自分のマシンからだけ開ける。 LAN には公開しない。)
 (sleep 2 && open http://localhost:8000) & docker compose run --rm --service-ports web
 # もしポートが埋まってたら↓
-# (sleep 2 && open http://localhost:8000) & docker compose run --rm -p 8080:8000 --service-ports web
+# (sleep 2 && open http://localhost:8080) & docker compose run --rm -p 127.0.0.1:8080:8000 web
 
 # cli 単体でも動きます (そりゃそうだ)
 docker compose run --rm app pipenv run python cli.py --help
