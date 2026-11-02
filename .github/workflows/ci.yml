@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker compose build
+      - run: docker compose run --rm app pipenv run ruff check .
+      - run: docker compose run --rm app pipenv run ruff format --check .
+      - run: docker compose run --rm app pipenv run pytest

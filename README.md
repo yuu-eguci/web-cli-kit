@@ -16,7 +16,7 @@ web-cli-kit
 - discord-messages repository のよいところを継承
     - 理解のため、コメントをちゃんと書いている
     - cli 単体でも起動できる (そりゃそうだ)
-    - ruff 導入済み
+    - ruff と pytest と CI 導入済み
     - README の "コミット前確認" らへんに dev への気遣いが見える
 
 ## ファイル構成
@@ -27,8 +27,10 @@ web-cli-kit
     - cli.py をブラウザから呼ぶための FastAPI サーバ。フォーム送信を受けて cli を subprocess 実行し、出力を SSE で画面へ流す。
 - index.html
     - web.py が返す 1 枚もののフロント。フォームと、実行ログの表示エリアと、「終わったよ閉じていいよ」ボタン。
+- tests/
+    - pytest。 cli と web の動きを確認します。 subprocess は手元の python だけで完結します。
 - そのほか
-    - Dockerfile / compose.yaml (Docker ジョブ実行型)、 Pipfile (依存)、 pyproject.toml (ruff)、 .env.example (web UI のフォーム初期値)。
+    - Dockerfile / compose.yaml (Docker ジョブ実行型)、 Pipfile (依存)、 pyproject.toml (ruff, pytest)、 .env.example (web UI のフォーム初期値)、 .github/workflows/ci.yml (main への push と PR で下のコミット前確認を回す)。
 
 ## How to start
 
@@ -56,17 +58,22 @@ docker compose run --rm app pipenv run python cli.py --message "やっほー相�
 
 ## fork して自分のツールにする
 
-やりたい cli があるなら、だいたいこの 3 ファイルを触ればいい。
+やりたい cli があるなら、だいたいこのへんを触ればいい。
 
 - cli.py の build_parser に、自分のツールに必要な引数を足す (本体の処理も書く)
 - web.py の RunRequest と _build_command に、同じ引数を足す (バリデーションもここ)
 - index.html のフォームに、同じ入力欄を足す
+- tests/ のテストも、自分の引数と出力に合わせて直します
 - cli を 001 → 002 → 003 のように複数本つなげたくなったら、 web.py の _run_real でループを回して _run_script を複数回呼ぶ (元ネタの discord-messages がその作り)
 
 秘密情報 (token など) は .env ではなくコマンドライン引数で渡す思想です。 .env は web UI のフォーム初期値専用。
 
 ## コミット前確認
 
+CI でも同じ内容を実行します。
+
 ```bash
 docker compose run --rm app pipenv run ruff check .
+docker compose run --rm app pipenv run ruff format --check .
+docker compose run --rm app pipenv run pytest
 ```
