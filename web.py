@@ -14,7 +14,7 @@ import uvicorn
 from dotenv import dotenv_values
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +56,11 @@ class RunRequest(BaseModel):
     """
     POST /api/run のリクエストボディです。
     各フィールドは cli.py のコマンドライン引数に対応します。
+    None (フォームの空欄) は「指定なし」で、 cli のデフォルトに任せます。
     """
 
     message: str | None = None
-    seconds: int = 3
+    seconds: int | None = Field(default=None, ge=0)
     dry_run: bool = False
 
     @model_validator(mode="after")
@@ -174,15 +175,12 @@ async def _run_real(request: RunRequest, queue: asyncio.Queue) -> None:
 def _build_command(request: RunRequest) -> list[str]:
     """
     cli.py のコマンドを組み立てます。 fork して引数が増えたら、ここも一緒に足してください。
+    NOTE: "--message=値" の形にしているのは、 "-" で始まる値をオプションと間違われないようにするためです。
     """
-    return [
-        sys.executable,
-        CLI_SCRIPT,
-        "--message",
-        str(request.message),
-        "--seconds",
-        str(request.seconds),
-    ]
+    command = [sys.executable, CLI_SCRIPT, f"--message={request.message}"]
+    if request.seconds is not None:
+        command.append(f"--seconds={request.seconds}")
+    return command
 
 
 async def _run_script(queue: asyncio.Queue, step: int, script: str, command: list[str]) -> None:
