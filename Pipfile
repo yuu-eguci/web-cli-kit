@@ -10,6 +10,8 @@ python-dotenv = "*"
 
 [dev-packages]
 ruff = "*"
+pytest = "*"
+httpx2 = "*"
 
 [requires]
 python_version = "3.14"
