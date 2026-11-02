@@ -28,7 +28,7 @@ services:
   # Web UI (web.py) 用のサービスです。
   # NOTE: run はデフォルトで ports を公開しないので、 --service-ports が必要。
   #       docker compose run --rm --service-ports web
-  #       ホスト側の 8000 が埋まってたら docker compose run --rm -p 8080:8000 web とかで回避する。
+  #       ホスト側の 8000 が埋まってたら docker compose run --rm -p 127.0.0.1:8080:8000 web とかで回避する。
   web:
     # 基本は app と同じ。
     extends:
@@ -36,5 +36,7 @@ services:
     # ただ、起動した瞬間にこれ↓を実行する。
     command: pipenv run python web.py
     # uvicorn が 8000 (右) で待っているので、そことホストの 8000 (左) をつなぐ。
+    # NOTE: 127.0.0.1 を付けて、ホスト自身からだけ届くようにしています。
+    #       付けないと LAN の誰でも cli を実行したり、サーバーを止めたりできてしまうためです。
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"

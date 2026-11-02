@@ -12,7 +12,8 @@ web-cli-kit
 - ようは、「本当にやりたいことは cli なんだが、コマンドライン引数をもっとラクに入力したいんだよな」っていうニーズを叶える構成なのだ
 - また別の cli を作るとき、あらかじめ cli.py web.py index.html だけあって、 fork してその中を書き換えればそのセットになる、というキットがあったらいいな……それが web-cli-kit
 - デフォルトの cli は、ただ簡単なコマンドライン引数を受け取って、数秒スリープして終わるだけ
-    - デフォルトの web は、「送信」ボタンでその cli を呼び出し、 cli が終わったら「終わったよ閉じていいよ」的なボタンを出す
+    - デフォルトの web は、「実行」ボタンでその cli を呼び出し、 cli が終わったら「終わったよ閉じていいよ」的なボタンを表示します
+    - 「dry run」にチェックすると、 cli を呼ばずにそれっぽいログだけ流れるため、 UI だけ試せます
 - discord-messages repository のよいところを継承
     - 理解のため、コメントをちゃんと書いている
     - cli 単体でも起動できる (そりゃそうだ)
@@ -37,19 +38,20 @@ web-cli-kit
 ```bash
 # 最初のセットアップ。
 # up -d --build じゃなくて build だけでいいのは、常駐サービスではなく単発ジョブ実行型だから。
-# (最初は Pipfile.lock が無いので、下の 3 手で lock を作ってから使い始めます。 lock コミット済みならこの 3 手は build だけで OK。)
 docker compose build
-docker compose run --rm app pipenv lock
+
+# 依存を追加したら、 lock を更新して build し直します。 (venv はイメージの中にあります。)
+docker compose run --rm app pipenv install パッケージ名
 docker compose build
 
 # Ruff を動かしてみる
 docker compose run --rm app pipenv run ruff check .
 docker compose run --rm app pipenv run ruff check --fix .
 
-# 自慢の web UI はこちら。
+# 自慢の web UI はこちら。 (自分のマシンからだけ開けます。 LAN には公開しません。)
 (sleep 2 && open http://localhost:8000) & docker compose run --rm --service-ports web
 # もしポートが埋まってたら↓
-# (sleep 2 && open http://localhost:8000) & docker compose run --rm -p 8080:8000 --service-ports web
+# (sleep 2 && open http://localhost:8080) & docker compose run --rm -p 127.0.0.1:8080:8000 web
 
 # cli 単体でも動きます (そりゃそうだ)
 docker compose run --rm app pipenv run python cli.py --help
