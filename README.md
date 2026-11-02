@@ -16,7 +16,7 @@ web-cli-kit
 - discord-messages repository のよいところを継承
     - 理解のため、コメントをちゃんと書いている
     - cli 単体でも起動できる (そりゃそうだ)
-    - ruff 導入済み
+    - ruff と pytest と CI 導入済み
     - README の "コミット前確認" らへんに dev への気遣いが見える
 
 ## ファイル構成
@@ -58,7 +58,7 @@ docker compose run --rm app pipenv run python cli.py --message "やっほー相�
 
 ## fork して自分のツールにする
 
-やりたい cli があるなら、だいたいこの 3 ファイルを触ればいい。
+やりたい cli があるなら、だいたいこのへんを触ればいい。
 
 - cli.py の build_parser に、自分のツールに必要な引数を足す (本体の処理も書く)
 - web.py の RunRequest と _build_command に、同じ引数を足す (バリデーションもここ)
