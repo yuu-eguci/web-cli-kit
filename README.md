@@ -62,6 +62,8 @@ docker compose run --rm app pipenv run python cli.py --message "やっほー相�
 
 - cli.py の build_parser に、自分のツールに必要な引数を足す (本体の処理も書く)
 - web.py の RunRequest と _build_command に、同じ引数を足す (バリデーションもここ)
+    - 値は `--name=値` の形で渡すと、 `-` で始まる値もオプションと間違われません
+    - フォームの空欄は None で届くため、引数ごと省いて cli のデフォルトに任せます
 - index.html のフォームに、同じ入力欄を足す
 - tests/ のテストも、自分の引数と出力に合わせて直します
 - cli を 001 → 002 → 003 のように複数本つなげたくなったら、 web.py の _run_real でループを回して _run_script を複数回呼ぶ (元ネタの discord-messages がその作り)

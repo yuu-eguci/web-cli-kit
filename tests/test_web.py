@@ -101,3 +101,19 @@ def test_shutdown_はサーバーに終了を伝える(client: TestClient) -> No
 
 def test_shutdown_はサーバー参照が無いと_500(client: TestClient) -> None:
     assert client.post("/api/shutdown").status_code == 500
+
+
+def test_seconds_が空欄なら引数ごと省いて_cli_のデフォルトに任せる() -> None:
+    command = web._build_command(web.RunRequest(message="やあ", seconds=None))
+    assert command[1:] == ["cli.py", "--message=やあ"]
+
+
+def test_seconds_がマイナスなら_422(client: TestClient) -> None:
+    assert client.post("/api/run", json={"message": "x", "seconds": -1}).status_code == 422
+
+
+def test_ハイフン始まりの_message_もそのまま_cli_へ届く(client: TestClient) -> None:
+    client.post("/api/run", json={"message": "--help", "seconds": 0})
+    events = read_events(client)
+    assert events[-1] == {"type": "done"}
+    assert {"type": "log", "step": 1, "line": "受け取ったメッセージ: --help"} in events
