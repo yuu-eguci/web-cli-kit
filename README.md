@@ -28,7 +28,7 @@ web-cli-kit
 - index.html
     - web.py が返す 1 枚もののフロント。フォームと、実行ログの表示エリアと、「終わったよ閉じていいよ」ボタン。
 - tests/
-    - pytest。 cli と web の動きを確かめる。 subprocess は手元の python だけで完結させてる。
+    - pytest。 cli と web の動きを確認します。 subprocess は手元の python だけで完結します。
 - そのほか
     - Dockerfile / compose.yaml (Docker ジョブ実行型)、 Pipfile (依存)、 pyproject.toml (ruff, pytest)、 .env.example (web UI のフォーム初期値)、 .github/workflows/ci.yml (main への push と PR で下のコミット前確認を回す)。
 
@@ -63,14 +63,14 @@ docker compose run --rm app pipenv run python cli.py --message "やっほー相�
 - cli.py の build_parser に、自分のツールに必要な引数を足す (本体の処理も書く)
 - web.py の RunRequest と _build_command に、同じ引数を足す (バリデーションもここ)
 - index.html のフォームに、同じ入力欄を足す
-- tests/ のテストも、自分の引数と出力に合わせて直す
+- tests/ のテストも、自分の引数と出力に合わせて直します
 - cli を 001 → 002 → 003 のように複数本つなげたくなったら、 web.py の _run_real でループを回して _run_script を複数回呼ぶ (元ネタの discord-messages がその作り)
 
 秘密情報 (token など) は .env ではなくコマンドライン引数で渡す思想です。 .env は web UI のフォーム初期値専用。
 
 ## コミット前確認
 
-CI もこれと同じことをやってます。
+CI でも同じ内容を実行します。
 
 ```bash
 docker compose run --rm app pipenv run ruff check .

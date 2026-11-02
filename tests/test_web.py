@@ -67,7 +67,7 @@ def test_dry_run_は_message_なしでも流れる(client: TestClient) -> None:
 def test_本実行は_cli_のログを_sse_で流す(client: TestClient) -> None:
     assert client.post("/api/run", json={"message": "やっほー", "seconds": 0}).json() == {"started": True}
     events = read_events(client)
-    # イベントにコマンド (将来の秘密情報を含みうる) は載せない。
+    # イベントにコマンド (将来の秘密情報を含みうる) は載せません。
     assert events[0] == {"type": "step_start", "step": 1, "script": "cli.py"}
     assert events[-2:] == [{"type": "step_end", "step": 1, "script": "cli.py"}, {"type": "done"}]
     lines = [event["line"] for event in events if event["type"] == "log"]
@@ -88,7 +88,7 @@ def test_実行中に_run_すると_409(client: TestClient, monkeypatch) -> None
     assert client.post("/api/run", json={"message": "x"}).status_code == 200
     assert client.post("/api/run", json={"message": "x"}).status_code == 409
     assert read_events(client)[-1] == {"type": "done"}
-    # 終わったら次のジョブを開始できる。
+    # 終了後は次のジョブを開始できます。
     assert client.post("/api/run", json={"dry_run": True}).status_code == 200
     assert read_events(client)[-1] == {"type": "done"}
 
